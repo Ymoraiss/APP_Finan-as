@@ -357,12 +357,17 @@ export default function App() {
 
   // Delete transaction
   const handleDelete = async (id) => {
+    const confirmDelete = window.confirm('Deseja realmente excluir esta transação?')
+    if (!confirmDelete) return false
+
     const { error } = await supabase.from('transactions').delete().eq('id', id)
     if (error) {
       showToast('Erro ao excluir transação.', 'error')
+      return false
     } else {
       setTransactions(prev => prev.filter(t => t.id !== id))
       showToast('Transação excluída.', 'success')
+      return true
     }
   }
 
@@ -948,8 +953,7 @@ export default function App() {
                     </div>
                     
                     <button
-                      className="delete-btn"
-                      style={{ color: 'var(--text-muted)' }}
+                      className="action-btn-item edit-btn"
                       onClick={() => startEdit(t)}
                       title="Editar transação"
                     >
@@ -957,7 +961,7 @@ export default function App() {
                     </button>
                     
                     <button
-                      className="delete-btn"
+                      className="action-btn-item delete-btn"
                       onClick={() => handleDelete(t.id)}
                       title="Excluir transação"
                     >
@@ -1044,6 +1048,18 @@ export default function App() {
               </div>
 
               <div className="modal-footer">
+                <button
+                  type="button"
+                  className="modal-btn delete"
+                  onClick={async () => {
+                    const deleted = await handleDelete(editingTransaction.id)
+                    if (deleted) {
+                      setEditingTransaction(null)
+                    }
+                  }}
+                >
+                  <Trash2 size={14} /> Excluir
+                </button>
                 <button
                   type="button"
                   className="modal-btn cancel"

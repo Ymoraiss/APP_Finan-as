@@ -534,7 +534,7 @@ body {
 .transaction-amount.income { color: var(--income-color); }
 .transaction-amount.expense { color: var(--expense-color); }
 
-.delete-btn {
+.action-btn-item {
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -545,11 +545,20 @@ body {
   margin-left: 8px;
   display: flex;
   align-items: center;
-  opacity: 0;
+  opacity: 0.6;
 }
 
-.transaction-item:hover .delete-btn { opacity: 1; }
-.delete-btn:hover { color: var(--expense-color); background: var(--expense-bg); }
+.transaction-item:hover .action-btn-item { opacity: 1; }
+
+.action-btn-item.edit-btn:hover {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.action-btn-item.delete-btn:hover {
+  color: var(--expense-color);
+  background: var(--expense-bg);
+}
 
 /* Empty state */
 .empty-state {
@@ -800,6 +809,21 @@ body {
 
 .modal-btn.save:hover {
   box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+}
+
+.modal-btn.delete {
+  background: var(--expense-bg);
+  color: var(--expense-color);
+  border: 1px solid var(--expense-border);
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15);
 }
 
 /* ======================== CHARTS SECTION ======================== */
