@@ -10,6 +10,7 @@ class MockSupabase {
     this.storageKey = 'finance_tracker_transactions'
     this.authKey = 'finance_tracker_auth_user'
     this.usersKey = 'finance_tracker_users'
+    this.listeners = []
     
     if (!localStorage.getItem(this.storageKey)) {
       localStorage.setItem(this.storageKey, JSON.stringify([]))
@@ -19,34 +20,50 @@ class MockSupabase {
     }
   }
 
+  notifyListeners(event) {
+    const sessionUser = localStorage.getItem(this.authKey)
+    const session = sessionUser ? { user: JSON.parse(sessionUser) } : null
+    this.listeners.forEach(callback => {
+      try {
+        callback(event, session)
+      } catch (e) {
+        console.error(e)
+      }
+    })
+  }
+
   get auth() {
+    const self = this
     return {
       signUp: async ({ email, password }) => {
-        const users = JSON.parse(localStorage.getItem(this.usersKey) || '[]')
+        const users = JSON.parse(localStorage.getItem(self.usersKey) || '[]')
         if (users.find(u => u.email === email)) {
           return { data: null, error: { message: 'Usuário já cadastrado.' } }
         }
         const newUser = { id: Math.random().toString(36).substring(2), email, password }
         users.push(newUser)
-        localStorage.setItem(this.usersKey, JSON.stringify(users))
-        localStorage.setItem(this.authKey, JSON.stringify(newUser))
+        localStorage.setItem(self.usersKey, JSON.stringify(users))
+        localStorage.setItem(self.authKey, JSON.stringify(newUser))
+        self.notifyListeners('SIGNED_IN')
         return { data: { user: { id: newUser.id, email } }, error: null }
       },
       signInWithPassword: async ({ email, password }) => {
-        const users = JSON.parse(localStorage.getItem(this.usersKey) || '[]')
+        const users = JSON.parse(localStorage.getItem(self.usersKey) || '[]')
         const user = users.find(u => u.email === email && u.password === password)
         if (!user) {
           return { data: null, error: { message: 'E-mail ou senha incorretos.' } }
         }
-        localStorage.setItem(this.authKey, JSON.stringify(user))
+        localStorage.setItem(self.authKey, JSON.stringify(user))
+        self.notifyListeners('SIGNED_IN')
         return { data: { user: { id: user.id, email } }, error: null }
       },
       signOut: async () => {
-        localStorage.removeItem(this.authKey)
+        localStorage.removeItem(self.authKey)
+        self.notifyListeners('SIGNED_OUT')
         return { error: null }
       },
       getSession: async () => {
-        const sessionUser = localStorage.getItem(this.authKey)
+        const sessionUser = localStorage.getItem(self.authKey)
         if (sessionUser) {
           const user = JSON.parse(sessionUser)
           return { data: { session: { user } }, error: null }
@@ -54,28 +71,33 @@ class MockSupabase {
         return { data: { session: null }, error: null }
       },
       getUser: async () => {
-        const sessionUser = localStorage.getItem(this.authKey)
+        const sessionUser = localStorage.getItem(self.authKey)
         if (sessionUser) {
           return { data: { user: JSON.parse(sessionUser) }, error: null }
         }
         return { data: { user: null }, error: null }
       },
       onAuthStateChange: (callback) => {
+        self.listeners.push(callback)
+        
         const handleStorage = () => {
-          const sessionUser = localStorage.getItem(this.authKey)
+          const sessionUser = localStorage.getItem(self.authKey)
           const session = sessionUser ? { user: JSON.parse(sessionUser) } : null
           callback(sessionUser ? 'SIGNED_IN' : 'SIGNED_OUT', session)
         }
         window.addEventListener('storage', handleStorage)
         
-        const sessionUser = localStorage.getItem(this.authKey)
+        const sessionUser = localStorage.getItem(self.authKey)
         const session = sessionUser ? { user: JSON.parse(sessionUser) } : null
         callback(session ? 'SIGNED_IN' : 'SIGNED_OUT', session)
         
         return {
           data: {
             subscription: {
-              unsubscribe: () => window.removeEventListener('storage', handleStorage)
+              unsubscribe: () => {
+                window.removeEventListener('storage', handleStorage)
+                self.listeners = self.listeners.filter(l => l !== callback)
+              }
             }
           }
         }
